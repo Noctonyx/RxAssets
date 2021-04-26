@@ -1,7 +1,7 @@
 #pragma once
 
 #include <filesystem>
-
+#if 0
 #include <bitsery/bitsery.h>
 #include <bitsery/traits/vector.h>
 #include "bitsery/adapter/buffer.h"
@@ -27,3 +27,4 @@ namespace RxAssets
         return bitsery::quickSerialization<output_buffer_adapter>(buf, data);
     }
 }
+#endif

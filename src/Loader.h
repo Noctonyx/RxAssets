@@ -18,7 +18,7 @@ namespace RxAssets
         static void loadTexture(TextureData & textureData, const std::filesystem::path & path);
         static void loadImage(ImageData & imageData, const std::filesystem::path & path);
         static void loadShader(ShaderData & shaderData, const std::filesystem::path & path);
-        static void loadMesh(MeshData & meshData, const std::filesystem::path & path);
+        static void loadMesh(MeshSaveData & meshData, const std::filesystem::path & path);
         static void loadMaterial(MaterialData2 & meshData, const std::filesystem::path & path);
         static void loadMaterialBase(MaterialBaseData & materialBaseData, const std::filesystem::path & path);
         static void loadMaterialPipeline(

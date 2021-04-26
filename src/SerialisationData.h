@@ -2,14 +2,16 @@
 
 #include <vector>
 #include <array>
-#include <bitsery/bitsery.h>
-#include <bitsery/traits/vector.h>
-#include <bitsery/traits/string.h>
+#include "tser.hpp"
+//#include <bitsery/bitsery.h>
+//#include <bitsery/traits/vector.h>
+//#include <bitsery/traits/string.h>
 #include "DirectXMath.h"
 //#include "glm/vec2.hpp"
 //#include "glm/vec3.hpp"
 //#include "vulkan/vulkan.h"
 
+#if 0
 namespace bitsery
 {
     template<typename S>
@@ -27,9 +29,11 @@ namespace bitsery
         s.value4b(vec.y);
     }
 }
+#endif
 
 namespace RxAssets
 {
+#if 0
     struct AssetIndex
     {
         //uint32_t indexCount;
@@ -55,43 +59,50 @@ namespace RxAssets
                 });
         }
     };
-
-    struct MeshData
+#endif
+    struct MeshPrimitive
     {
-        struct Vertex
-        {
-            DirectX::XMFLOAT3 vertex;
-            float pad1;
-            DirectX::XMFLOAT3 normal;
-            float pad2;
-            DirectX::XMFLOAT2 uvs;
-            float pad3;
-            float pad4;
-        };
-
-        //uint32_t vertexCount;
-        std::vector<Vertex> vertices;
-        std::vector<uint32_t> indices;
-        DirectX::XMFLOAT3 minp;
-        DirectX::XMFLOAT3  maxp;
-
-        struct MeshPrimitive
-        {
+        DEFINE_SERIALIZABLE(MeshPrimitive, firstIndex, indexCount, materialIndex, materialName)
             uint32_t firstIndex = 0;
-            uint32_t indexCount = 0;
-            int32_t materialIndex = 0;
-            std::string materialName{};
+        uint32_t indexCount = 0;
+        int32_t materialIndex = 0;
+        std::string materialName{};
 
-            //MeshPrimitive() = default;
-        };
+        //MeshPrimitive() = default;
+    };
+
+    struct MeshSaveVertex
+    {
+        DEFINE_SERIALIZABLE(MeshSaveVertex, x, y, z, nx, ny, nz, uvx, uvy)
+            float x, y, z;
+        float nx, ny, nz;
+        float uvx, uvy;
+        //            DirectX::XMFLOAT3 vertex;
+        ///float pad1;
+        //DirectX::XMFLOAT3 normal;
+        //float pad2;
+        //DirectX::XMFLOAT2 uvs;
+        //float pad3;
+        //float pad4;
+    };
+
+    struct MeshSaveData
+    {
+        DEFINE_SERIALIZABLE(MeshSaveData, vertices, indices, minpx, minpy, minpz, maxpx, maxpy, maxpz, materials, primitives )
+        //uint32_t vertexCount;
+        std::vector<MeshSaveVertex> vertices;
+        std::vector<uint32_t> indices;
+        float minpx, minpy, minpz;
+        float maxpx, maxpy, maxpz;
+
         std::vector<std::string> materials{};
         std::vector<MeshPrimitive> primitives{};
 
-        MeshData() = default;
-        MeshData(MeshData && other) = default;
-        MeshData(const MeshData & other) = default;
-
-        template<typename S>
+        //MeshData() = default;
+        //MeshData(MeshData && other) = default;
+        //MeshData(const MeshData & other) = default;
+#if 0
+        template <typename S>
         void serialize(S & s)
         {
             //s.value2b(version);
@@ -106,31 +117,38 @@ namespace RxAssets
                     s.object(v.normal);
                     s.object(v.uvs);
                 });
-            s.container(materials, 10, [](S & s, std::string & st) { s.text<1>(st, 150); });
+            s.container(materials, 10, [](S & s, std::string & st)
+            {
+                s.text < 1 > (st, 150);
+            });
             //s.value4b(section.indexCount);
-            s.container<4>(indices, std::numeric_limits<uint32_t>::max());
+            s.container < 4 > (indices, std::numeric_limits<uint32_t>::max());
             s.container(
                 primitives, 10, [](S & s, MeshPrimitive & p)
                 {
                     s.value4b(p.firstIndex);
                     s.value4b(p.indexCount);
                     s.value4b(p.materialIndex);
-                    s.text<1>(p.materialName, 100);
+                    s.text < 1 > (p.materialName, 100);
                 });
         }
+#endif
     };
 
     struct MaterialData
     {
         std::string colorTextureAssetName;
         std::string emissionTextureAssetName;
+        std::string normalTextureAssetName;
         std::string vertexShader;
         std::string depthVertexShader;
         std::string fragmentShader;
         std::string depthFragmentShader;
+        std::string transparency;
 
         float metallicValue;
         float roughnessValue;
+        std::string name;
 #if 0
         template<typename S>
         void serialize(S & s)
@@ -149,7 +167,8 @@ namespace RxAssets
 
     enum ImageType : uint8_t
     {
-        eBitmap = 0, eBC7 = 1
+        eBitmap = 0,
+        eBC7 = 1
     };
 
     struct ImageData
@@ -170,6 +189,7 @@ namespace RxAssets
             }
 #endif
         };
+
         //uint8_t formatType;
         uint16_t width;
         uint16_t height;
@@ -285,66 +305,101 @@ namespace RxAssets
 
     enum class MaterialPipelineFillMode : uint32_t
     {
-        eFill = 0, //VK_POLYGON_MODE_FILL,
-        eLine = 1, //VK_POLYGON_MODE_LINE,
-        ePoint = 2//VK_POLYGON_MODE_POINT
+        eFill = 0,
+        //VK_POLYGON_MODE_FILL,
+        eLine = 1,
+        //VK_POLYGON_MODE_LINE,
+        ePoint = 2 //VK_POLYGON_MODE_POINT
     };
 
     enum class MaterialPipelineCullMode : uint32_t
     {
-        eNone = 0, //VK_CULL_MODE_NONE,
-        eFront = 1,//VK_CULL_MODE_FRONT_BIT,
-        eBack = 2,//VK_CULL_MODE_BACK_BIT,
-        eFrontAndBack = 3//VK_CULL_MODE_FRONT_AND_BACK
+        eNone = 0,
+        //VK_CULL_MODE_NONE,
+        eFront = 1,
+        //VK_CULL_MODE_FRONT_BIT,
+        eBack = 2,
+        //VK_CULL_MODE_BACK_BIT,
+        eFrontAndBack = 3 //VK_CULL_MODE_FRONT_AND_BACK
     };
 
     enum class MaterialPipelineFrontFace : uint32_t
     {
-        eCounterClockwise = 0,//VK_FRONT_FACE_COUNTER_CLOCKWISE,
-        eClockwise = 1//VK_FRONT_FACE_CLOCKWISE
+        eCounterClockwise = 0,
+        //VK_FRONT_FACE_COUNTER_CLOCKWISE,
+        eClockwise = 1 //VK_FRONT_FACE_CLOCKWISE
     };
 
     enum class MaterialPipelineDepthCompareOp : uint32_t
     {
-        eNever = 0, //VK_COMPARE_OP_NEVER,
-        eLess = 1, //VK_COMPARE_OP_LESS,
-        eEqual = 2, //VK_COMPARE_OP_EQUAL,
-        eLessOrEqual = 3, //VK_COMPARE_OP_LESS_OR_EQUAL,
-        eGreater = 4, //VK_COMPARE_OP_GREATER,
-        eNotEqual = 5, //VK_COMPARE_OP_NOT_EQUAL,
-        eGreaterOrEqual = 6, //VK_COMPARE_OP_GREATER_OR_EQUAL,
+        eNever = 0,
+        //VK_COMPARE_OP_NEVER,
+        eLess = 1,
+        //VK_COMPARE_OP_LESS,
+        eEqual = 2,
+        //VK_COMPARE_OP_EQUAL,
+        eLessOrEqual = 3,
+        //VK_COMPARE_OP_LESS_OR_EQUAL,
+        eGreater = 4,
+        //VK_COMPARE_OP_GREATER,
+        eNotEqual = 5,
+        //VK_COMPARE_OP_NOT_EQUAL,
+        eGreaterOrEqual = 6,
+        //VK_COMPARE_OP_GREATER_OR_EQUAL,
         eAlways = 7 //VK_COMPARE_OP_ALWAYS
     };
 
     enum class MaterialPipelineBlendFactor : uint32_t
     {
-        eZero = 0,// VK_BLEND_FACTOR_ZERO,
-        eOne = 1, //VK_BLEND_FACTOR_ONE,
-        eSrcColor = 2, //VK_BLEND_FACTOR_SRC_COLOR,
-        eOneMinusSrcColor = 3, //VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR,
-        eDstColor = 4, //VK_BLEND_FACTOR_DST_COLOR,
-        eOneMinusDstColor = 5, //VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR,
-        eSrcAlpha = 6, //VK_BLEND_FACTOR_SRC_ALPHA,
-        eOneMinusSrcAlpha = 7, //VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-        eDstAlpha = 8, //VK_BLEND_FACTOR_DST_ALPHA,
-        eOneMinusDstAlpha = 9, //VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA,
-        eConstantColor = 10, //VK_BLEND_FACTOR_CONSTANT_COLOR,
-        eOneMinusConstantColor = 11, //VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR,
-        eConstantAlpha = 12, //VK_BLEND_FACTOR_CONSTANT_ALPHA,
-        eOneMinusConstantAlpha = 13, //VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA,
-        eSrcAlphaSaturate = 14, //VK_BLEND_FACTOR_SRC_ALPHA_SATURATE,
-        eSrc1Color = 15, //VK_BLEND_FACTOR_SRC1_COLOR,
-        eOneMinusSrc1Color = 16, //VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR,
-        eSrc1Alpha = 17, //VK_BLEND_FACTOR_SRC1_ALPHA,
+        eZero = 0,
+        // VK_BLEND_FACTOR_ZERO,
+        eOne = 1,
+        //VK_BLEND_FACTOR_ONE,
+        eSrcColor = 2,
+        //VK_BLEND_FACTOR_SRC_COLOR,
+        eOneMinusSrcColor = 3,
+        //VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR,
+        eDstColor = 4,
+        //VK_BLEND_FACTOR_DST_COLOR,
+        eOneMinusDstColor = 5,
+        //VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR,
+        eSrcAlpha = 6,
+        //VK_BLEND_FACTOR_SRC_ALPHA,
+        eOneMinusSrcAlpha = 7,
+        //VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+        eDstAlpha = 8,
+        //VK_BLEND_FACTOR_DST_ALPHA,
+        eOneMinusDstAlpha = 9,
+        //VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA,
+        eConstantColor = 10,
+        //VK_BLEND_FACTOR_CONSTANT_COLOR,
+        eOneMinusConstantColor = 11,
+        //VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR,
+        eConstantAlpha = 12,
+        //VK_BLEND_FACTOR_CONSTANT_ALPHA,
+        eOneMinusConstantAlpha = 13,
+        //VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA,
+        eSrcAlphaSaturate = 14,
+        //VK_BLEND_FACTOR_SRC_ALPHA_SATURATE,
+        eSrc1Color = 15,
+        //VK_BLEND_FACTOR_SRC1_COLOR,
+        eOneMinusSrc1Color = 16,
+        //VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR,
+        eSrc1Alpha = 17,
+        //VK_BLEND_FACTOR_SRC1_ALPHA,
         eOneMinusSrc1Alpha = 18 //VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA
     };
 
     enum class MaterialPipelineBlendOp : uint32_t
     {
-        eAdd = 0, //VK_BLEND_OP_ADD,
-        eSubtract = 1, //VK_BLEND_OP_SUBTRACT,
-        eReverseSubtract = 2, //VK_BLEND_OP_REVERSE_SUBTRACT,
-        eMin = 3, //VK_BLEND_OP_MIN,
+        eAdd = 0,
+        //VK_BLEND_OP_ADD,
+        eSubtract = 1,
+        //VK_BLEND_OP_SUBTRACT,
+        eReverseSubtract = 2,
+        //VK_BLEND_OP_REVERSE_SUBTRACT,
+        eMin = 3,
+        //VK_BLEND_OP_MIN,
         eMax = 4 //VK_BLEND_OP_MAX,
     };
 

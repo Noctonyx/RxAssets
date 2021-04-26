@@ -13,12 +13,12 @@
 #define DDSKTX_IMPLEMENT
 
 #include "dds-ktx.h"
-#include "bitsery/adapter/buffer.h"
+//#include "bitsery/adapter/buffer.h"
 #include "AssetException.h"
 
 namespace RxAssets
 {
-    typedef bitsery::InputBufferAdapter<std::vector<uint8_t>> inputBufferAdapter;
+  //  typedef bitsery::InputBufferAdapter<std::vector<uint8_t>> inputBufferAdapter;
 
     void Loader::loadTexture(TextureData & textureData, const std::filesystem::path & path)
     {
@@ -156,7 +156,7 @@ namespace RxAssets
         memcpy(shaderData.bytes.data(), data.data(), size);
     }
 
-    void Loader::loadMesh(MeshData & meshData, const std::filesystem::path & path)
+    void Loader::loadMesh(MeshSaveData & meshData, const std::filesystem::path & path)
     {
         auto vfs = Vfs::getInstance();
         auto size = vfs->getFilesize(path);
@@ -164,12 +164,19 @@ namespace RxAssets
             throw AssetException("Error loading texture asset:", path);
         }
 
-        std::vector<uint8_t> data(size);
+        std::vector<char> data(size);
         vfs->getFileContents(path, reinterpret_cast<std::byte *>(data.data()));
 
-        auto state = bitsery::quickDeserialization<inputBufferAdapter>(
-            {data.begin(), data.size()}, meshData);
-        (void)state;
+        tser::BinaryArchive archive(0);
+
+        std::string_view sv(data.data(), data.size());
+        archive.initialize(sv);
+
+        archive.load<MeshSaveData>(meshData);
+        //meshData = mesh;
+        //auto state = bitsery::quickDeserialization<inputBufferAdapter>(
+          //  {data.begin(), data.size()}, meshData);
+        //(void)state;
     }
 
     void Loader::getSamplerDetails(nlohmann::json & json, RxAssets::SamplerData & sd)

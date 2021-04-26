@@ -9,9 +9,10 @@ add_library(RxAssets STATIC
         src/miniz.c
         src/miniz.h
         src/Loader.cpp
+        src/tser.hpp
         src/Loader.h
         src/AssetException.cpp
-        src/stb_image.cpp)
+        src/stb_image.cpp "src/tser.hpp")
 
 target_compile_features(RxAssets PUBLIC cxx_std_20)
 
@@ -27,7 +28,7 @@ target_include_directories(RxAssets PUBLIC "src")
 #target_link_libraries(RXAssets PUBLIC spdlog::spdlog_header_only)
 #target_link_libraries(RXAssets PUBLIC glm)
 target_link_libraries(RxAssets PUBLIC nlohmann_json nlohmann_json::nlohmann_json)
-target_link_libraries(RxAssets PUBLIC Bitsery::bitsery)
+#target_link_libraries(RxAssets PUBLIC Bitsery::bitsery)
 target_link_libraries(RxAssets PRIVATE RxUtil)
 #target_include_directories(RXAssets PUBLIC ${entt_SOURCE_DIR}/src)
 
