@@ -7,8 +7,24 @@
 
 #include <memory>
 #include <filesystem>
+#include <thread>
 #include <unordered_map>
 #include "miniz.h"
+
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <tchar.h>
+#include <Pathcch.h>
+#include <shlwapi.h>
+#endif // WIN32
 
 namespace RxAssets
 {
@@ -32,6 +48,15 @@ namespace RxAssets
         //uint32_t size;
         uint32_t zipIndex;
     };
+    
+    struct MonitorData
+    {
+        std::filesystem::path path;
+        std::vector<BYTE> buffer{};
+        DWORD bytes_returned = 0;
+        OVERLAPPED overlapped_buffer{ 0, 0 , {{0, 0}},  0 };
+        HANDLE directory{NULL};
+    };
 
     class Vfs
     {
@@ -49,6 +74,7 @@ namespace RxAssets
 
         void shutdown()
         {
+            stopMonitor();
             delete instance_;
             instance_ = nullptr;
         }
@@ -61,7 +87,11 @@ namespace RxAssets
             return instance_;
         }
 
+        void monitorForChanges();
+        bool hasChanged();
+
     protected:
+        void stopMonitor();
         void clearCatalog();
         void loadDirectoryCatalog(const std::filesystem::path & path, const std::string & mount, uint32_t mountIndex);
         void loadZipCatalog(const std::filesystem::path & path, const std::string & mountPoint, uint32_t mountIndex, Mount & mount);
@@ -76,6 +106,12 @@ namespace RxAssets
         std::unordered_map<std::string, uint32_t> catalogIndex_;
         //bool writeable_;
         std::filesystem::path writeableDirectory_;
+
+        std::vector<MonitorData> monData;
+        std::thread monitorThread;
+        HANDLE closeEvent;
+
+        bool changed = false;
     };
 
     Vfs * vfs();

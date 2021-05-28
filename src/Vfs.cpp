@@ -8,6 +8,7 @@
 #include "Log.h"
 #include "AssetException.h"
 
+
 namespace RxAssets
 {
     Vfs * Vfs::instance_ = nullptr;
@@ -37,6 +38,102 @@ namespace RxAssets
         for (auto & c: catalog_) {
             spdlog::debug("{} {}", c.name, c.relativePath.generic_string().c_str());
         }
+    }
+
+    void Vfs::monitorForChanges()
+    {
+        static constexpr std::size_t _buffer_size = {1024 * 256};
+        monData.clear();
+
+        for (auto & m: mounts_) {
+            if (is_directory(m.path)) {
+                monData.push_back({
+                    m.path,
+                });
+            }
+        }
+        closeEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+        for (auto & md: monData) {
+            md.buffer.resize(_buffer_size);
+            md.overlapped_buffer.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+            md.directory = CreateFileA(
+                md.path.generic_string().c_str(), // pointer to the file name
+                FILE_LIST_DIRECTORY, // access (read/write) mode
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, // share mode
+                nullptr, // security descriptor
+                OPEN_EXISTING, // how to create
+                FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, // file attributes
+                HANDLE(0)); // file with attributes to copy
+        }
+
+        monitorThread = (std::thread([this]()
+            {
+                std::vector<HANDLE> events;
+                for (auto& md : monData) {
+                    events.push_back(md.overlapped_buffer.hEvent);
+                }
+                events.push_back(closeEvent);
+
+                while (true) {
+                    for (auto& md : monData) {
+                        ReadDirectoryChangesW(
+                            md.directory,
+                            md.buffer.data(), static_cast<DWORD>(md.buffer.size()),
+                            TRUE,
+                            FILE_NOTIFY_CHANGE_SECURITY |
+                            FILE_NOTIFY_CHANGE_CREATION |
+                            FILE_NOTIFY_CHANGE_LAST_ACCESS |
+                            FILE_NOTIFY_CHANGE_LAST_WRITE |
+                            FILE_NOTIFY_CHANGE_SIZE |
+                            FILE_NOTIFY_CHANGE_ATTRIBUTES |
+                            FILE_NOTIFY_CHANGE_DIR_NAME |
+                            FILE_NOTIFY_CHANGE_FILE_NAME,
+                            &md.bytes_returned,
+                            &md.overlapped_buffer, NULL);
+                    }
+
+                    auto res = WaitForMultipleObjects(static_cast<DWORD>(events.size()), events.data(), FALSE, INFINITE);
+                    if(res == WAIT_FAILED) {
+                        return;
+                    }
+
+                    res -= WAIT_OBJECT_0;
+                    if(res == events.size() - 1) {
+                        return;
+                    }
+
+                    auto& ad = monData[res];
+
+                    if (!GetOverlappedResult(ad.directory, &ad.overlapped_buffer, &ad.bytes_returned,TRUE)) {
+                        throw std::system_error(GetLastError(), std::system_category());
+                    }
+                    if (ad.bytes_returned > 0) {
+                        changed = true;
+                    }
+                }
+            }));        
+    }
+
+    bool Vfs::hasChanged()
+    {
+        auto b = changed;
+        changed = false;
+        return b;
+    }
+
+    void Vfs::stopMonitor()
+    {
+        SetEvent(closeEvent);
+        monitorThread.join();
+        for (auto& md : monData) {
+            CancelIo(md.directory);
+            GetOverlappedResult(md.directory, &md.overlapped_buffer, &md.bytes_returned, TRUE);
+            CloseHandle(md.directory);
+        }
+
+        CloseHandle(closeEvent);
     }
 
     void Vfs::clearCatalog()
