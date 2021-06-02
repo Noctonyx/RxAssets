@@ -332,6 +332,14 @@ namespace RxAssets
         return getFileAsset(full_path, data);
     }
 
+    bool Vfs::assetExists(const std::filesystem::path & path) const
+    {
+        if(!catalogIndex_.contains(path.generic_string())) {
+            return false;
+        }
+        return true;
+    }
+
     CatalogEntry Vfs::getCatalogEntry(const std::filesystem::path & path) const
     {
         if (!catalogIndex_.contains(path.generic_string())) {
@@ -367,7 +375,7 @@ namespace RxAssets
         return size_read;
     }
 
-    std::string Vfs::getStringFile(const std::filesystem::path & path) const
+    std::string Vfs::getAssetAsString(const std::filesystem::path & path) const
     {
         const auto size = getFilesize(path);
         if (size) {

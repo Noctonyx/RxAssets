@@ -69,7 +69,8 @@ namespace RxAssets
         void scan();
         size_t getFilesize(const std::filesystem::path & path) const;
         size_t getFileContents(const std::filesystem::path & path, std::byte * data) const;
-        std::string getStringFile(const std::filesystem::path & path) const;
+        bool assetExists(const std::filesystem::path & path) const;
+        std::string getAssetAsString(const std::filesystem::path & path) const;
         void writeFile(const std::filesystem::path & path, std::byte * data, size_t size) const;
 
         void shutdown()
