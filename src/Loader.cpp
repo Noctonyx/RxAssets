@@ -1,3 +1,28 @@
+////////////////////////////////////////////////////////////////////////////////
+// MIT License
+//
+// Copyright (c) 2021.  Shane Hyde (shane@noctonyx.com)
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+//
+////////////////////////////////////////////////////////////////////////////////
+
 //
 // Created by shane on 17/02/2021.
 //
@@ -30,12 +55,13 @@ namespace RxAssets
             load_path.replace_extension(".tex.json");
         }
 
-        auto size = vfs->getFilesize(load_path);
-        if (size == 0) {
+        std::optional<size_t> size = vfs->getFilesize(load_path);
+
+        if (!size.has_value()) {
             throw AssetException("Error loading texture asset:", path);
         }
 
-        std::vector<std::byte> data(size);
+        std::vector<std::byte> data(size.value());
         vfs->getFileContents(load_path, data.data());
 
         nlohmann::json j = nlohmann::json::parse(data.begin(), data.end());
@@ -73,16 +99,18 @@ namespace RxAssets
 
         auto vfs = Vfs::getInstance();
         auto size = vfs->getFilesize(path);
-        if (size == 0) {
+        if (!size.has_value()) {
             throw AssetException("Error loading texture asset:", path);
         }
 
-        std::vector<std::byte> data(size);
+        std::vector<std::byte> data(size.value());
         vfs->getFileContents(path, data.data());
+
+        int s =static_cast<int>(size.value());
 
         auto * ptr = stbi_load_from_memory(
             reinterpret_cast<const stbi_uc *>(data.data()),
-            static_cast<int>(size), &x, &y, &n, 0);
+            s, &x, &y, &n, 0);
 
         imageData.width = static_cast<uint16_t>(x);
         imageData.height = static_cast<uint16_t>(y);
@@ -103,11 +131,11 @@ namespace RxAssets
     {
         auto vfs = Vfs::getInstance();
         auto size = vfs->getFilesize(path);
-        if (size == 0) {
+        if (!size.has_value()) {
             throw AssetException("Error loading texture asset:", path);
         }
 
-        std::vector<std::byte> data(size);
+        std::vector<std::byte> data(size.value());
         vfs->getFileContents(path, data.data());
 
         ddsktx_texture_info texture_info = {}; 
@@ -145,31 +173,31 @@ namespace RxAssets
     {
         auto vfs = Vfs::getInstance();
         auto size = vfs->getFilesize(path);
-        if (size == 0) {
+        if (!size.has_value()) {
             throw AssetException("Error loading texture asset:", path);
         }
 
-        shaderData.bytes.resize(size / 4);
-        std::vector<std::byte> data(size);
+        shaderData.bytes.resize(size.value() / 4);
+        std::vector<std::byte> data(size.value());
         vfs->getFileContents(path, data.data());
 
-        memcpy(shaderData.bytes.data(), data.data(), size);
+        memcpy(shaderData.bytes.data(), data.data(), size.value());
     }
 
     void Loader::loadMesh(MeshSaveData & meshData, const std::filesystem::path & path)
     {
         auto vfs = Vfs::getInstance();
         auto size = vfs->getFilesize(path);
-        if (size == 0) {
+        if (!size.has_value()) {
             throw AssetException("Error loading texture asset:", path);
         }
 
-        std::vector<char> data(size);
-        vfs->getFileContents(path, reinterpret_cast<std::byte *>(data.data()));
+        std::vector<std::byte> data(size.value());
+        vfs->getFileContents(path, data.data());
 
         tser::BinaryArchive archive(0);
 
-        std::string_view sv(data.data(), data.size());
+        std::string_view sv(reinterpret_cast<char *>(data.data()), data.size());
         archive.initialize(sv);
 
         archive.load<MeshSaveData>(meshData);
@@ -315,11 +343,11 @@ namespace RxAssets
         }
 
         auto size = vfs->getFilesize(load_path);
-        if (size == 0) {
+        if (!size.has_value()) {
             throw AssetException("Error loading material asset:", path);
         }
 
-        std::vector<std::byte> data(size);
+        std::vector<std::byte> data(size.value());
         vfs->getFileContents(load_path, data.data());
 
         nlohmann::json j = nlohmann::json::parse(data.begin(), data.end());
@@ -376,11 +404,11 @@ namespace RxAssets
         }
 
         auto size = vfs->getFilesize(load_path);
-        if (size == 0) {
+        if (!size.has_value()) {
             throw AssetException("Error loading materialbase asset:", path);
         }
 
-        std::vector<std::byte> data(size);
+        std::vector<std::byte> data(size.value());
         vfs->getFileContents(load_path, data.data());
 
         nlohmann::json j = nlohmann::json::parse(data.begin(), data.end());
@@ -453,11 +481,11 @@ namespace RxAssets
         }
 
         auto size = vfs->getFilesize(load_path);
-        if (size == 0) {
+        if (!size.has_value()) {
             throw AssetException("Error loading material pipeline asset:", path);
         }
 
-        std::vector<std::byte> data(size);
+        std::vector<std::byte> data(size.value());
         vfs->getFileContents(load_path, data.data());
 
         nlohmann::json j = nlohmann::json::parse(data.begin(), data.end());
@@ -714,11 +742,11 @@ namespace RxAssets
         }
 
         auto size = vfs->getFilesize(load_path);
-        if (size == 0) {
+        if (!size.has_value()) {
             throw AssetException("Error loading entity asset:", path);
         }
 
-        std::vector<std::byte> data(size);
+        std::vector<std::byte> data(size.value());
         vfs->getFileContents(load_path, data.data());
 
         nlohmann::json j = nlohmann::json::parse(data.begin(), data.end());
